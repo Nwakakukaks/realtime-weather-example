@@ -10,8 +10,6 @@ interface WeatherVideoOverlayProps {
     playbackId: string;
     whipUrl: string;
   } | null;
-  actualPlaybackUrl?: string | null;
-  isWHIPStreaming?: boolean;
 }
 
 const WeatherVideoOverlayComponent = ({
@@ -25,84 +23,76 @@ const WeatherVideoOverlayComponent = ({
   const [error, setError] = useState<string | null>(null);
   const [isStreamLoading, setIsStreamLoading] = useState(true);
   const [isStreamLive, setIsStreamLive] = useState(false);
+  const [showIframe, setShowIframe] = useState(false);
   const lastRenderedPlaybackId = useRef<string | null>(null);
   const loadingTimeoutRef = useRef<number | null>(null);
+  const iframeDelayRef = useRef<number | null>(null);
 
   // Initialize stream - single source of truth
   useEffect(() => {
     if (isEnabled && streamData) {
       const { playbackId: dynamicPlaybackId } = streamData;
-      
-      console.log("🎬 WeatherVideoOverlay: Received streamData:", streamData);
-      console.log("🎬 WeatherVideoOverlay: Using playbackId:", dynamicPlaybackId);
 
       setPlaybackId(dynamicPlaybackId);
       setError(null);
       setIsStreamLoading(true);
       setIsStreamLive(false);
+      setShowIframe(false);
 
-      // Clear any existing timeout
+      // Clear any existing timeouts
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
+      }
+      if (iframeDelayRef.current) {
+        clearTimeout(iframeDelayRef.current);
       }
 
       // Set a timeout to prevent infinite loading
       loadingTimeoutRef.current = setTimeout(() => {
-        console.log("⚠️ Stream loading timeout - marking as ready");
         setIsStreamLoading(false);
         setIsStreamLive(true);
         onStreamStateChange?.(false, true);
-      }, 10000); // 10 second timeout
-
-      console.log("🎬 Stream ready for weather overlay");
-      console.log(`🌤️ Using stream for ${currentCity.name}, ${currentCity.country}...`);
+      }, 60000); // 60 second timeout
     } else if (!isEnabled) {
       // Reset state when disabled
       setPlaybackId(null);
       setIsStreamLoading(false);
       setIsStreamLive(false);
-      
-      // Clear timeout
+      setShowIframe(false);
+
+      // Clear timeouts
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
         loadingTimeoutRef.current = null;
       }
+      if (iframeDelayRef.current) {
+        clearTimeout(iframeDelayRef.current);
+        iframeDelayRef.current = null;
+      }
     }
-  }, [isEnabled, streamData, currentCity]);
+  }, [isEnabled, streamData]);
 
   // Handle weather changes gracefully - preserve current stream
   useEffect(() => {
     if (!isEnabled || !playbackId) {
       return;
     }
-
-    console.log(
-      "🌤️ Weather change detected:",
-      weather.condition,
-      "in",
-      currentCity.name,
-      "- preserving current stream"
-    );
-
-    // Show a brief visual indicator that weather change was detected
-    // The stream will continue with the current AI processing
-    console.log(
-      "🎬 Stream preserved - AI effects will continue with current parameters"
-    );
-  }, [weather, isEnabled, playbackId, currentCity]);
+    // Stream continues with current AI processing
+  }, [weather, isEnabled, playbackId]);
 
   // Notify parent component of stream state changes
   useEffect(() => {
-    if (onStreamStateChange) {
-      onStreamStateChange(isStreamLoading, isStreamLive);
-    }
-  }, [isStreamLoading, isStreamLive]); // Removed onStreamStateChange from dependencies
+    onStreamStateChange?.(isStreamLoading, isStreamLive);
+  }, [isStreamLoading, isStreamLive, onStreamStateChange]);
 
-  // Cleanup timeout on unmount
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
+      }
+      if (iframeDelayRef.current) {
+        clearTimeout(iframeDelayRef.current);
       }
     };
   }, []);
@@ -123,25 +113,23 @@ const WeatherVideoOverlayComponent = ({
 
   // Show Daydream video stream - use streamData playbackId if local playbackId is not set
   const currentPlaybackId = playbackId || streamData?.playbackId;
-  
+
   if (currentPlaybackId) {
     // Only re-render if playbackId actually changed
     if (currentPlaybackId !== lastRenderedPlaybackId.current) {
-      console.log("🎬 WeatherVideoOverlay: Rendering iframe with playbackId:", currentPlaybackId);
       lastRenderedPlaybackId.current = currentPlaybackId;
     }
-    
+
     return (
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         {/* Fallback Background - Always present to prevent white canvas */}
         <div
           className="absolute inset-0 transition-all duration-2000 ease-in-out"
           style={{
-            background: isStreamLoading
-              ? "linear-gradient(to bottom, rgba(31, 41, 55, 0.95) 0%, rgba(31, 41, 55, 0.9) 20%, rgba(31, 41, 55, 0.8) 40%, rgba(31, 41, 55, 0.6) 60%, rgba(31, 41, 55, 0.4) 80%, rgba(31, 41, 55, 0.2) 90%, transparent 100%)" // Pure gray-800 night storm loading background
-              : isStreamLive
-              ? "linear-gradient(to bottom, rgba(135, 206, 235, 0.2) 0%, rgba(152, 216, 232, 0.15) 30%, rgba(176, 224, 230, 0.1) 60%, transparent 100%)" // Light sky gradient
-              : "linear-gradient(to bottom, rgba(26, 26, 46, 0.3) 0%, rgba(22, 33, 62, 0.2) 30%, rgba(15, 52, 96, 0.1) 60%, transparent 100%)", // Default subtle
+            background:
+              isStreamLoading || !isStreamLive
+                ? "linear-gradient(to bottom, rgba(3, 7, 18, 0.95) 0%, rgba(3, 7, 18, 0.9) 20%, rgba(3, 7, 18, 0.8) 40%, rgba(3, 7, 18, 0.6) 60%, rgba(3, 7, 18, 0.4) 80%, rgba(3, 7, 18, 0.2) 90%, transparent 100%)" // Pure gray-950 night storm loading background and default
+                : "linear-gradient(to bottom, rgba(135, 206, 235, 0.2) 0%, rgba(152, 216, 232, 0.15) 30%, rgba(176, 224, 230, 0.1) 60%, transparent 100%)", // Light sky gradient
           }}
         />
 
@@ -150,7 +138,8 @@ const WeatherVideoOverlayComponent = ({
           <div
             className="absolute inset-0"
             style={{
-              background: "linear-gradient(to bottom, rgba(59, 130, 246, 0.1) 0%, rgba(147, 197, 253, 0.05) 50%, transparent 100%)",
+              background:
+                "linear-gradient(to bottom, rgba(3, 7, 18, 0.95) 0%, rgba(3, 7, 18, 0.9) 20%, rgba(3, 7, 18, 0.8) 40%, rgba(3, 7, 18, 0.6) 60%, rgba(3, 7, 18, 0.4) 80%, rgba(3, 7, 18, 0.2) 90%, transparent 100%)",
             }}
           />
         )}
@@ -161,10 +150,14 @@ const WeatherVideoOverlayComponent = ({
             <div className="text-center text-white/90 bg-black/30 backdrop-blur-md rounded-xl px-8 py-6 max-w-md mx-4">
               <div className="w-10 h-10 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
               <p className="text-lg font-semibold mb-2">
-                Loading Game Environment
+                {isStreamLive
+                  ? `Applying Daydream Visuals`
+                  : `Loading Game Environment `}
               </p>
               <p className="text-sm text-white/70">
-                Fetching live weather conditions in {currentCity.name}..
+                {isStreamLive
+                  ? `Applying weather effects for ${currentCity.name}...`
+                  : `Fetching live weather conditions in ${currentCity.name}...`}
               </p>
             </div>
           </div>
@@ -186,47 +179,42 @@ const WeatherVideoOverlayComponent = ({
             src={`https://lvpr.tv/?v=${currentPlaybackId}&lowLatency=force`}
             className="w-full h-full border-0"
             style={{
-              opacity: isStreamLive ? 0.6 : 0,
+              opacity: showIframe ? 0.6 : 0,
               mixBlendMode: "multiply",
               transition: "opacity 2s ease-in-out",
             }}
             allow="camera; microphone; autoplay; fullscreen"
             onLoad={() => {
-              console.log("✅ Daydream stream iframe loaded");
-              console.log(
-                "🎬 Iframe src:",
-                `https://lvpr.tv/?v=${currentPlaybackId}&lowLatency=force`
-              );
-              
               // Clear the loading timeout
               if (loadingTimeoutRef.current) {
                 clearTimeout(loadingTimeoutRef.current);
                 loadingTimeoutRef.current = null;
               }
-              
-              // Add a small delay to ensure the stream is actually ready
-              setTimeout(() => {
+
+              // Mark stream as live but keep loading state for 10 seconds
+              setIsStreamLive(true);
+              onStreamStateChange?.(true, true);
+
+              // Add 8-second delay before showing iframe and ending loading
+              iframeDelayRef.current = setTimeout(() => {
+                setShowIframe(true);
                 setIsStreamLoading(false);
-                setIsStreamLive(true);
                 onStreamStateChange?.(false, true);
-                console.log("🎬 Stream is now live and generating background!");
-              }, 1000);
+              }, 10000); // 10 second delay for Livepeer TV to load
             }}
             onError={(e) => {
-              console.error("❌ Iframe failed to load:", e);
               setError(
                 "Failed to load Daydream stream - stream may be starting up"
               );
               // Reset to loading state to allow retry
               setIsStreamLoading(true);
               setIsStreamLive(false);
-              console.log("⚠️ Iframe error - will retry on next render");
             }}
           />
         </div>
 
         {/* Enhanced Visual Overlay for Live Stream */}
-        {isStreamLive && (
+        {showIframe && (
           <div className="absolute inset-0 pointer-events-none">
             {/* Subtle atmospheric overlay */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/10" />
@@ -258,13 +246,15 @@ const WeatherVideoOverlayComponent = ({
 };
 
 // Memoize the component to prevent unnecessary re-renders
-export const WeatherVideoOverlay = memo(WeatherVideoOverlayComponent, (prevProps, nextProps) => {
-  // Only re-render if these specific props change
-  return (
-    prevProps.isEnabled === nextProps.isEnabled &&
-    prevProps.streamData?.playbackId === nextProps.streamData?.playbackId &&
-    prevProps.isWHIPStreaming === nextProps.isWHIPStreaming &&
-    prevProps.weather.condition === nextProps.weather.condition &&
-    prevProps.currentCity.name === nextProps.currentCity.name
-  );
-});
+export const WeatherVideoOverlay = memo(
+  WeatherVideoOverlayComponent,
+  (prevProps, nextProps) => {
+    // Only re-render if these specific props change
+    return (
+      prevProps.isEnabled === nextProps.isEnabled &&
+      prevProps.streamData?.playbackId === nextProps.streamData?.playbackId &&
+      prevProps.weather.condition === nextProps.weather.condition &&
+      prevProps.currentCity.name === nextProps.currentCity.name
+    );
+  }
+);

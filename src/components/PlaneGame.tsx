@@ -49,6 +49,10 @@ export const PlaneGame: React.FC<PlaneGameProps> = ({
   const [freeFlightHealth, setFreeFlightHealth] = useState(100);
   const [isStreamLoading, setIsStreamLoading] = useState(true);
   const [isStreamLive, setIsStreamLive] = useState(false);
+  const [streamData, setStreamData] = useState<{
+    playbackId: string;
+    whipUrl: string;
+  } | null>(null);
 
   // Get city-specific altitude
   const getCityAltitude = useCallback((city: City): number => {
@@ -161,7 +165,7 @@ export const PlaneGame: React.FC<PlaneGameProps> = ({
   // Handle stream ready from GameLoader
   const handleStreamReady = useCallback(
     (playbackId: string, whipUrl: string) => {
-      // Stream ready - this is now handled by the parent component
+      setStreamData({ playbackId, whipUrl });
     },
     []
   );
@@ -369,18 +373,14 @@ export const PlaneGame: React.FC<PlaneGameProps> = ({
             />
           </Canvas>
 
-          {/* Streaming is handled by GameLoader - no duplicate needed */}
-
           {/* Daydream API Video Background */}
-          {/* <WeatherVideoOverlay
+          <WeatherVideoOverlay
             weather={currentWeather}
             currentCity={currentCity}
-            isEnabled={true}
+            isEnabled={!isLoading && streamData !== null}
             onStreamStateChange={handleStreamStateChange}
-            streamData={null}
-            actualPlaybackUrl={null}
-            isWHIPStreaming={false}
-          /> */}
+            streamData={streamData}
+          />
 
           {/* Game Overlays */}
           <GameOverlays

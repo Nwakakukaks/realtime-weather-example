@@ -178,7 +178,7 @@ export const GameLoader: React.FC<GameLoaderProps> = ({
           {/* Game logo/title */}
           <div className="mb-8">
             <h1 className="text-5xl font-bold mb-2 text-shadow-lg">
-              DreamFlight
+              3D Flight Simulator
             </h1>
           </div>
 
