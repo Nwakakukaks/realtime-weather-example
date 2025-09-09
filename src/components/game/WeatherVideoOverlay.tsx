@@ -191,16 +191,15 @@ const WeatherVideoOverlayComponent = ({
                 loadingTimeoutRef.current = null;
               }
 
-              // Mark stream as live but keep loading state for 10 seconds
               setIsStreamLive(true);
               onStreamStateChange?.(true, true);
 
-              // Add 8-second delay before showing iframe and ending loading
+              // Add 12-second delay before showing livestream and ending loading
               iframeDelayRef.current = setTimeout(() => {
                 setShowIframe(true);
                 setIsStreamLoading(false);
                 onStreamStateChange?.(false, true);
-              }, 10000); // 10 second delay for Livepeer TV to load
+              }, 12000); // 12 second delay for Livepeer TV to load
             }}
             onError={(e) => {
               setError(

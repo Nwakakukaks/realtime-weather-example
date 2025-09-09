@@ -162,6 +162,8 @@ const AirplaneComponent = ({
   const { nodes, materials } = useGLTF("/assets/models/airplane.glb") as any;
   const groupRef = useRef<THREE.Group>(null);
   const helixMeshRef = useRef<THREE.Mesh>(null);
+  const lastUpdateTime = useRef<number>(0);
+  const frameCount = useRef<number>(0);
 
   // Check if model is loaded
   const isModelLoaded = nodes && materials && Object.keys(nodes).length > 0;
@@ -175,7 +177,7 @@ const AirplaneComponent = ({
   const y = useMemo(() => new THREE.Vector3(0, 1, 0), []);
   const z = useMemo(() => new THREE.Vector3(0, 0, 1), []);
 
-  useFrame(() => {
+  useFrame((state, delta) => {
     if (!groupRef.current || !helixMeshRef.current) return;
 
     updatePlaneAxis(x, y, z, weather, isPaused);
@@ -200,11 +202,15 @@ const AirplaneComponent = ({
     // Rotate propeller
     helixMeshRef.current.rotation.z -= 1.0;
 
-    // Update flight data in real-time (only when not paused)
-    if (!isPaused) {
+    // Throttle flight data updates to prevent infinite re-renders
+    frameCount.current += 1;
+    const now = state.clock.elapsedTime;
+    
+    // Only update flight data every 6 frames (10fps) to prevent excessive re-renders
+    if (frameCount.current % 6 === 0 && !isPaused) {
       setFlightData((prev) => {
         // In free mode, fuel doesn't deplete for endless exploration
-        const newFuel = gameMode === "free" ? 100 : Math.max(0, prev.fuel - 0.033); // Fuel lasts ~3 minutes in challenge mode
+        const newFuel = gameMode === "free" ? 100 : Math.max(0, prev.fuel - 0.2); // Fuel lasts ~3 minutes in challenge mode
 
         // Check if fuel ran out - only crash in challenge mode
         if (newFuel <= 0 && prev.fuel > 0 && gameMode === "challenge") {

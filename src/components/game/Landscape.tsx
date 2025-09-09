@@ -1,27 +1,43 @@
-import { useEffect, useMemo, memo } from "react";
+import { useEffect, useMemo, memo, useState } from "react";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import type { City } from "@/lib/weather";
+import { getModelUrl, CITY_MODEL_MAP, LOCAL_ASSET_URLS } from "@/lib/assets";
 
 interface LandscapeProps {
   selectedCity?: City;
 }
 
 const LandscapeComponent = ({ selectedCity }: LandscapeProps) => {
-  // Map city names to model file names
+  const [modelPath, setModelPath] = useState<string>("/assets/models/NewYork.glb");
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Get model path using simplified asset configuration
   const getModelPath = (city: City | undefined): string => {
-    if (!city) return "/assets/models/NewYork.glb"; // Default fallback
+    if (!city) return getModelUrl("newYork"); // Default fallback
     
-    const modelMap: Record<string, string> = {
-      "New York": "NewYork.glb",
-      "Sydney": "Sydney.glb"
-    };
+    const modelKey = CITY_MODEL_MAP[city.name];
+    if (modelKey) {
+      return getModelUrl(modelKey);
+    }
     
-    const modelFile = modelMap[city.name] || "NewYork.glb";
-    return `/assets/models/${modelFile}`;
+    return getModelUrl("newYork"); // Fallback to New York
   };
 
-  const modelPath = getModelPath(selectedCity);
+  // Load model path when city changes
+  useEffect(() => {
+    setIsLoading(true);
+    try {
+      const path = getModelPath(selectedCity);
+      setModelPath(path);
+    } catch (error) {
+      console.error("Failed to load model path:", error);
+      setModelPath("/assets/models/NewYork.glb"); // Fallback to local
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedCity]);
+
   const { nodes, materials } = useGLTF(modelPath) as any;
   
   // Memoize the model data to prevent re-renders
@@ -115,6 +131,14 @@ const LandscapeComponent = ({ selectedCity }: LandscapeProps) => {
     }).filter(Boolean);
   }, [memoizedNodes]);
 
+  if (isLoading) {
+    return (
+      <group dispose={null}>
+        {/* Show loading placeholder or nothing while loading */}
+      </group>
+    );
+  }
+
   return (
     <group dispose={null}>
       {renderMeshes}
@@ -123,9 +147,11 @@ const LandscapeComponent = ({ selectedCity }: LandscapeProps) => {
 }
 
 // Preload available city models for better performance
-useGLTF.preload("/assets/models/NewYork.glb");
-useGLTF.preload("/assets/models/Sydney.glb");
-useGLTF.preload("/assets/models/scene.glb"); // Fallback
+// Preload external models
+useGLTF.preload("https://jnoznbd6y3.ufs.sh/f/PKy8oE1GN2J3ru3x4ds6An6gRGyK1t9mT720wvOWhJqDdIec");
+useGLTF.preload("https://jnoznbd6y3.ufs.sh/f/PKy8oE1GN2J3QJl6abMB4oh9KpZbJwuajRl6c2XWTSfEVm85");
+// Preload local fallbacks
+useGLTF.preload(LOCAL_ASSET_URLS.models.scene);
 
 // Memoize the component to prevent unnecessary re-renders
 export const Landscape = memo(LandscapeComponent, (prevProps, nextProps) => {

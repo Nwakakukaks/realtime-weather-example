@@ -1,4 +1,4 @@
-import React, {  } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Sky,
   Environment,
@@ -10,6 +10,7 @@ import * as THREE from "three";
 import type { WeatherData, City } from "@/lib/weather";
 import { Airplane } from "./Airplane";
 import { Landscape } from "./Landscape";
+import { getTextureUrl } from "@/lib/assets";
 
 import { CameraController } from "./CameraController";
 
@@ -50,8 +51,8 @@ export function GameScene({
   onHealthIncrease,
   currentHealth,
 }: GameSceneProps) {
-
-
+  // Environment texture always uses local file
+  const envTextureUrl = getTextureUrl("envmapHdr");
 
   return (
     <>
@@ -85,8 +86,10 @@ export function GameScene({
       />
       <Environment 
         background={false} 
-        files="/assets/textures/envmap.hdr"
-        onError={(error) => console.error("Environment loading error:", error)}
+        files={envTextureUrl}
+        onError={(error) => {
+          console.error("Environment loading error:", error);
+        }}
       />
 
       {/* Landscape */}

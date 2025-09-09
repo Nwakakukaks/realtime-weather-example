@@ -11,9 +11,10 @@ interface GameLoaderProps {
 const LOADING_MESSAGES = [
   "Initializing flight systems...",
   "Setting up weather effects stream...",
-  "Preparing AI video processing...",
-  "Configuring stream parameters...",
-  "Ready for stream setup! 🎬",
+  "Preparing WebRTC streaming...",
+  "Loading cloud video assets...",
+  "Connecting to stream endpoint...",
+  "Ready for live streaming! 🎬",
 ];
 
 export const GameLoader: React.FC<GameLoaderProps> = ({
@@ -74,7 +75,7 @@ export const GameLoader: React.FC<GameLoaderProps> = ({
     };
   }, [streamInitialized]);
 
-  // Initialize Daydream stream for weather effects
+  // Initialize Daydream stream and WebRTC streaming
   useEffect(() => {
     const initializeStream = async () => {
       if (streamInitialized) {
@@ -90,11 +91,14 @@ export const GameLoader: React.FC<GameLoaderProps> = ({
             const playbackId = streamData.output_playback_id;
             const whipUrl = streamData.whip_url;
             const streamId = streamData.id;
-            const livepeerTvUrl = DaydreamIntegration.getLivepeerTvUrl() || "";
 
             if (playbackId && whipUrl && streamId) {
               setStreamData({ playbackId, whipUrl, streamId });
               onStreamReady?.(playbackId, whipUrl);
+
+              // Start WebRTC streaming with cloud.mp4
+              await startWebRTCStream(whipUrl);
+
               setStreamInitialized(true);
               setProgress(100); // Complete the progress bar
               return;
@@ -131,6 +135,82 @@ export const GameLoader: React.FC<GameLoaderProps> = ({
     initializeStream();
   }, [streamInitialized, onStreamReady]);
 
+  // WebRTC streaming function
+  const startWebRTCStream = async (whipUrl: string) => {
+    try {
+      console.log("🎬 Starting WebRTC stream with cloud.mp4...");
+
+      // Create video element for cloud.mp4
+      const video = document.createElement("video");
+      video.src = "/assets/cloud.mp4";
+      video.loop = true;
+      video.muted = true;
+      video.autoplay = true;
+      video.playsInline = true;
+
+      // Wait for video to be ready
+      await new Promise((resolve, reject) => {
+        video.onloadedmetadata = resolve;
+        video.onerror = reject;
+        video.load();
+      });
+
+      // Get video stream
+      const videoStream = (video as any).captureStream
+        ? (video as any).captureStream()
+        : (video as any).mozCaptureStream();
+
+      if (!videoStream) {
+        throw new Error("Failed to capture video stream");
+      }
+
+      // Create WebRTC peer connection
+      const peerConnection = new RTCPeerConnection({
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+      });
+
+      // Add video track to peer connection
+      const videoTrack = videoStream.getVideoTracks()[0];
+      if (videoTrack) {
+        peerConnection.addTrack(videoTrack, videoStream);
+        console.log("✅ Video track added to WebRTC connection");
+      }
+
+      // Create offer and send to WHIP endpoint
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+
+      // Send offer to WHIP endpoint
+      const response = await fetch(whipUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/sdp",
+        },
+        body: offer.sdp,
+      });
+
+      if (response.ok) {
+        const answerSdp = await response.text();
+        await peerConnection.setRemoteDescription({
+          type: "answer",
+          sdp: answerSdp,
+        });
+
+        console.log("✅ WebRTC stream connected successfully");
+        console.log("🎬 Streaming cloud.mp4 to:", whipUrl);
+
+        // Store peer connection for cleanup
+        (window as any).webrtcConnection = peerConnection;
+        (window as any).streamVideo = video;
+      } else {
+        throw new Error(`WHIP endpoint returned ${response.status}`);
+      }
+    } catch (error) {
+      console.error("❌ WebRTC streaming failed:", error);
+      // Don't throw error, just log it - game can continue without streaming
+    }
+  };
+
   useEffect(() => {
     if (progress >= 100 && streamInitialized) {
       setReadyToStart(true);
@@ -148,6 +228,21 @@ export const GameLoader: React.FC<GameLoaderProps> = ({
 
     onLoadingComplete();
   };
+
+  // Cleanup WebRTC connection on unmount
+  useEffect(() => {
+    return () => {
+      if ((window as any).webrtcConnection) {
+        (window as any).webrtcConnection.close();
+        console.log("🧹 WebRTC connection cleaned up");
+      }
+      if ((window as any).streamVideo) {
+        (window as any).streamVideo.pause();
+        (window as any).streamVideo.src = "";
+        console.log("🧹 Stream video cleaned up");
+      }
+    };
+  }, []);
 
   // Removed copy functionality - no longer needed for automatic streaming
 
@@ -202,10 +297,10 @@ export const GameLoader: React.FC<GameLoaderProps> = ({
             </div>
             <p className="mt-2 text-lg opacity-80">
               {streamInitialized
-                ? "100% - Stream Ready!"
+                ? "100% - WebRTC Stream Ready!"
                 : `${Math.round(
                     Math.min(progress, 95)
-                  )}% - Setting up stream...`}
+                  )}% - Setting up WebRTC stream...`}
             </p>
           </div>
 
@@ -225,66 +320,6 @@ export const GameLoader: React.FC<GameLoaderProps> = ({
           )}
 
           {/* Stream ready for weather overlay */}
-
-          {/* Stream URLs for OBS */}
-          {streamData && streamData.playbackId && (
-            <div className="mt-6 w-full max-w-2xl mx-auto">
-              <div className="bg-white/10 rounded-lg backdrop-blur-sm border border-white/20 p-4">
-                <h3 className="text-lg font-semibold mb-3 text-center text-yellow-300">
-                  📺 OBS Stream URLs
-                </h3>
-                <div className="space-y-3">
-                  {/* Playback URL */}
-                  <div>
-                    <label className="block text-sm font-medium text-white/90 mb-1">
-                      Livepeer TV Playback URL:
-                    </label>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="text"
-                        readOnly
-                        value={`https://lvpr.tv/?v=${streamData.playbackId}&lowLatency=force`}
-                        className="flex-1 px-3 py-2 bg-white/20 text-white text-sm rounded border border-white/30 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                      />
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(
-                            `https://lvpr.tv/?v=${streamData.playbackId}&lowLatency=force`
-                          );
-                        }}
-                        className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded transition-colors"
-                      >
-                        Copy
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* WHIP URL */}
-                  <div>
-                    <label className="block text-sm font-medium text-white/90 mb-1">
-                      WHIP URL (for OBS):
-                    </label>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="text"
-                        readOnly
-                        value={streamData.whipUrl}
-                        className="flex-1 px-3 py-2 bg-white/20 text-white text-sm rounded border border-white/30 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                      />
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(streamData.whipUrl);
-                        }}
-                        className="px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white text-sm rounded transition-colors"
-                      >
-                        Copy
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Stream Error Display */}
           {streamError && (
@@ -314,9 +349,6 @@ export const GameLoader: React.FC<GameLoaderProps> = ({
                 >
                   🚀 Start Game
                 </button>
-                <p className="text-sm text-white/80 mt-2 max-w-48">
-                  Weather effects are ready! Click to start the game.
-                </p>
               </div>
             )}
 
