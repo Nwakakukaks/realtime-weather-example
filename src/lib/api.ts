@@ -25,33 +25,37 @@ export class DaydreamIntegration {
     if (!API_KEY || API_KEY === "REPLACE_WITH_YOUR_API_KEY") {
       throw new Error("Please set your API key in the .env file first");
     }
-    
+
     try {
       const requestBody = {
-        pipeline_id: PIPELINE_ID
+        pipeline_id: PIPELINE_ID,
       };
-      
+
       const response = await fetch(`${API_BASE_URL}/v1/streams`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEY}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_KEY}`,
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         if (response.status === 401) {
-          throw new Error(`Authentication failed (401). Please check your API key. Response: ${errorText}`);
+          throw new Error(
+            `Authentication failed (401). Please check your API key. Response: ${errorText}`
+          );
         } else {
-          throw new Error(`HTTP error! status: ${response.status}. Response: ${errorText}`);
+          throw new Error(
+            `HTTP error! status: ${response.status}. Response: ${errorText}`
+          );
         }
       }
-      
+
       const data = await response.json();
       this.currentStream = data;
-      
+
       return data;
     } catch (error) {
       console.error("Failed to create Daydream stream:", error);
@@ -62,41 +66,43 @@ export class DaydreamIntegration {
   /**
    * Start WebRTC stream using the WHIP URL
    */
-  static async startWebRTCStream(localStream: MediaStream): Promise<RTCPeerConnection> {
+  static async startWebRTCStream(
+    localStream: MediaStream
+  ): Promise<RTCPeerConnection> {
     if (!this.currentStream || !this.currentStream.whip_url || !localStream) {
       throw new Error("No stream available. Create a stream first.");
     }
-    
+
     try {
       const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       });
-      
-      localStream.getTracks().forEach(track => {
+
+      localStream.getTracks().forEach((track) => {
         pc.addTrack(track, localStream);
       });
-      
+
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      
+
       const response = await fetch(this.currentStream.whip_url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/sdp'
+          "Content-Type": "application/sdp",
         },
-        body: offer.sdp
+        body: offer.sdp,
       });
-      
+
       if (!response.ok) {
         throw new Error(`WHIP request failed: ${response.status}`);
       }
-      
+
       const answerSdp = await response.text();
       await pc.setRemoteDescription({
-        type: 'answer',
-        sdp: answerSdp
+        type: "answer",
+        sdp: answerSdp,
       });
-      
+
       console.log("✅ WebRTC stream started successfully!");
       return pc;
     } catch (error) {
@@ -112,26 +118,29 @@ export class DaydreamIntegration {
     if (!this.currentStream) {
       throw new Error("No stream available. Create a stream first.");
     }
-    
+
     if (!API_KEY || API_KEY === "REPLACE_WITH_YOUR_API_KEY") {
       throw new Error("Please set your API key in the .env file first");
     }
-    
+
     try {
-      const response = await fetch(`${API_BASE_URL}/beta/streams/${this.currentStream.id}/prompts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEY}`
-        },
-        body: JSON.stringify(params)
-      });
-      
+      const response = await fetch(
+        `${API_BASE_URL}/beta/streams/${this.currentStream.id}/prompts`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${API_KEY}`,
+          },
+          body: JSON.stringify(params),
+        }
+      );
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
-      console.log("✅ Parameters updated successfully!");
+
+    
     } catch (error) {
       console.error("Error updating parameters:", error);
       throw error;
@@ -146,18 +155,8 @@ export class DaydreamIntegration {
     delay: number = 2000
   ): Promise<void> {
     try {
-      console.log(`🌤️ Fetching real weather data for ${city.name}, ${city.country}...`);
-
       // Fetch real weather data
       const weatherData = await WeatherAPI.getWeather(city);
-
-      console.log(`📊 Real weather data for ${city.name}:`, {
-        condition: weatherData.condition,
-        temperature: weatherData.temperature,
-        windSpeed: weatherData.windSpeed,
-        visibility: weatherData.visibility,
-        humidity: weatherData.humidity,
-      });
 
       // Update Daydream effects with real weather data
       this.updateWeatherEffectsDebounced(weatherData, city, delay);
@@ -230,18 +229,14 @@ export class DaydreamIntegration {
           humidity: 60,
           windSpeed: 10,
           visibility: 10,
-          icon: '01d'
+          icon: "01d",
         };
-        
+
         await this.updateWeatherEffects(manualWeather, city);
       } catch (error) {
         console.error("❌ Failed to update manual weather effects:", error);
       }
     }, delay);
-
-    console.log(
-      `⏱️ Manual weather update scheduled in ${delay}ms: ${weatherCondition} in ${city.name}`
-    );
   }
 
   /**
@@ -259,10 +254,6 @@ export class DaydreamIntegration {
     const prompt = this.generateWeatherPrompt(weather, city);
     const seed = this.generateSeed(weather, city);
 
-    console.log(`🌤️ Updating weather effects: ${weather.condition} in ${city.name}`);
-    console.log(`🎨 Generated prompt: ${prompt}`);
-    console.log(`🎲 Using seed: ${seed}`);
-
     const params = {
       model_id: "streamdiffusion",
       pipeline: "live-video-to-video",
@@ -272,8 +263,9 @@ export class DaydreamIntegration {
         prompt_interpolation_method: "slerp",
         normalize_prompt_weights: true,
         normalize_seed_weights: true,
-        negative_prompt: "buildings, towers, structures, human, girl, people, anime, ground, landscape, blurry, low quality, flat, 2d",
-        num_inference_steps: 30,
+        negative_prompt:
+          "buildings, towers, structures, human, girl, people, anime, ground, landscape, blurry, low quality, flat, 2d",
+        num_inference_steps: 50,
         seed: seed,
         t_index_list: [0, 8, 17],
         controlnets: [
@@ -335,41 +327,40 @@ export class DaydreamIntegration {
   /**
    * Generate concise weather-specific prompts for Daydream
    */
+
   private static generateWeatherPrompt(
     weather: WeatherData,
     _city: City
   ): string {
-    const basePrompt = `Aerial sky view, no buildings visible, photorealistic, high quality`;
+    const basePrompt = `Aerial sky view, no buildings, photorealistic, cinematic realism, ultra high detail`;
 
-    // Generate highly detailed condition-specific prompts with emphasis on key features
     let conditionPrompt = "";
     switch (weather.condition.toLowerCase()) {
       case "clear":
-        conditionPrompt = `(bright blue sky) with (white fluffy cumulus clouds), (golden sunlight) streaming through, (crystal clear visibility), (vibrant blue atmosphere), (perfect weather conditions), (sunny day) with (scattered white clouds)`;
+        conditionPrompt = `(deep vibrant blue sky), (radiant golden sunlight), (scattered fluffy cumulus clouds), (crystal clear atmosphere), (bright cheerful tones), (calm serene weather), (high visibility)`;
         break;
 
       case "wind":
-        conditionPrompt = `(strong wind motion effects) with (white clouds moving rapidly), (patches of air movement) visible, (dynamic cloud formations) shifting, (atmospheric wind patterns), (fast-moving cloud systems), (wind-swept sky) with (turbulent air currents)`;
+        conditionPrompt = `(turbulent atmosphere), (fast-moving cloud streaks), (visible swirling air currents), (motion-blurred wisps in the sky), (chaotic shifting formations), (dynamic wind-swept patterns), (restless stormy energy)`;
         break;
 
       case "rain":
-        conditionPrompt = `(heavy rain fall motion) with (water droplets falling), (dark rain clouds), (precipitation effects) everywhere, (wet atmosphere), (rain streaks) visible, (falling water), (stormy rain clouds) with (continuous rainfall)`;
+        conditionPrompt = `(dense dark gray rain clouds), (continuous rainfall in motion), (droplets streaking down), (misty wet haze filling the air), (cold muted tones), (sheets of rain across the scene), (stormy atmosphere)`;
         break;
 
       case "thunderstorm":
-        conditionPrompt = `(dark storm clouds) with (thunder strikes), (lightning flashes) illuminating sky, (heavy rain) pouring down, (electrical storm effects), (dramatic dark atmosphere), (thunder and lightning), (severe weather) with (powerful storm clouds)`;
+        conditionPrompt = `(towering black thunderclouds), (dramatic lightning bolts illuminating sky), (violent flashes of light), (torrential rainfall), (ominous dark mood), (electrical storm atmosphere), (severe cinematic weather)`;
         break;
 
       case "fog":
-        conditionPrompt = `(thick fog everywhere) with (extremely low visibility), (misty clouds covering entire sky), (ethereal fog effects), (atmospheric haze), (dense fog banks), (reduced visibility), (foggy conditions) with (clouds everywhere)`;
+        conditionPrompt = `(ominous storm clouds), (hailstones falling rapidly), (sharp icy white particles streaking), (violent precipitation motion), (dark storm-filled atmosphere), (chaotic icy downpour), (cold cinematic storm mood)`;
         break;
 
       default:
-        conditionPrompt = `${weather.condition.toLowerCase()} weather conditions`;
+        conditionPrompt = `${weather.condition.toLowerCase()} weather sky, realistic atmospheric details`;
     }
 
-    // Simple, focused prompt
-    return `${basePrompt}, ${conditionPrompt}, high quality`;
+    return `${basePrompt}, ${conditionPrompt}, hyper-realistic, ultra-detailed`;
   }
 
   /**
@@ -440,6 +431,5 @@ export class DaydreamIntegration {
       this.updateTimeout = null;
     }
     this.currentStream = null;
-    console.log("🧹 Daydream integration cleaned up");
   }
 }

@@ -159,7 +159,6 @@ export const GameLoader: React.FC<GameLoaderProps> = ({
         onAudioReady={handleAudioReady}
       />
 
-
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-b from-blue-200 via-blue-300 to-blue-400">
         {/* Animated clouds in background */}
         <div className="absolute inset-0 overflow-hidden">
@@ -281,10 +280,6 @@ export const GameLoader: React.FC<GameLoaderProps> = ({
                         Copy
                       </button>
                     </div>
-                  </div>
-
-                  <div className="text-xs text-white/70 text-center mt-2">
-                    💡 Copy these URLs to OBS for live streaming
                   </div>
                 </div>
               </div>
