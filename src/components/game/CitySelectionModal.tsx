@@ -9,15 +9,13 @@ const ALL_CITIES = [...CITIES, ...COMING_SOON_CITIES];
 
 // Mapping city names to image files
 const CITY_IMAGES: Record<string, string> = {
-  "New York": "/cities/paris.jpeg", // Using paris as fallback for New York
+  "New York": "/cities/italy.jpeg", // Using paris as fallback for New York
   Matera: "/cities/italy.jpeg", // Using italy as fallback for Matera
   Sydney: "/cities/london.jpeg", // Using london as fallback for Sydney
   // Coming soon cities
-  Berlin: "/cities/berlin.jpeg",
-  Budapest: "/cities/budapest.jpeg",
-  "Hong Kong": "/cities/paris.jpeg", // Using paris as fallback for Hong Kong
+
   London: "/cities/london.jpeg",
-  Seoul: "/cities/paris.jpeg", // Using paris as fallback for Seoul
+
   Vatican: "/cities/italy.jpeg", // Using italy as fallback for Vatican
   Venice: "/cities/italy.jpeg", // Using italy as fallback for Venice
 };
@@ -65,7 +63,8 @@ export function CitySelectionModal({
       value: "Clear",
       label: "Clear Sky",
       icon: "☀️",
-      description: "Bright blue sky with white fluffy clouds and golden sunlight",
+      description:
+        "Bright blue sky with white fluffy clouds and golden sunlight",
     },
     {
       value: "Wind",
@@ -83,7 +82,8 @@ export function CitySelectionModal({
       value: "Thunderstorm",
       label: "Storm",
       icon: "⛈️",
-      description: "Dark storm clouds with thunder strikes and lightning flashes",
+      description:
+        "Dark storm clouds with thunder strikes and lightning flashes",
     },
     {
       value: "Fog",
@@ -122,10 +122,6 @@ export function CitySelectionModal({
         cityForWeather,
         1000
       );
-
-      // Manual weather override applied
-
-      console.log(`✅ Manual weather change applied successfully: ${weather}`);
     } catch (error) {
       console.error("❌ Failed to update manual weather effects:", error);
     }
@@ -167,12 +163,6 @@ export function CitySelectionModal({
           onWeatherChange(cityWeather.condition);
         }
       }
-
-      // Live weather will be applied for the new city
-
-      // Note: Weather update will be handled by WeatherVideoOverlay initialization
-      // when the currentCity prop changes, so we don't need to call it here
-      console.log(`✅ City change applied successfully: ${city.name}`);
     } catch (error) {
       console.error("❌ Failed to update city:", error);
       // Still update location even if other operations fail
