@@ -52,7 +52,6 @@ export class DaydreamIntegration {
       const data = await response.json();
       this.currentStream = data;
       
-      console.log("🎬 Daydream stream created:", data);
       return data;
     } catch (error) {
       console.error("Failed to create Daydream stream:", error);

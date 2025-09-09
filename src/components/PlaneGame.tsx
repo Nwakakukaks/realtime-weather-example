@@ -162,7 +162,6 @@ export const PlaneGame: React.FC<PlaneGameProps> = ({
   const handleStreamReady = useCallback(
     (playbackId: string, whipUrl: string) => {
       // Stream ready - this is now handled by the parent component
-      console.log("Stream ready:", { playbackId, whipUrl });
     },
     []
   );
@@ -204,11 +203,14 @@ export const PlaneGame: React.FC<PlaneGameProps> = ({
   }, [gameMode, isPaused, gameState]);
 
   // Handle health increase from heart collection
-  const handleHealthIncrease = useCallback((amount: number) => {
-    if (gameMode === "free") {
-      setFreeFlightHealth((prev) => Math.min(100, prev + amount));
-    }
-  }, [gameMode]);
+  const handleHealthIncrease = useCallback(
+    (amount: number) => {
+      if (gameMode === "free") {
+        setFreeFlightHealth((prev) => Math.min(100, prev + amount));
+      }
+    },
+    [gameMode]
+  );
 
   // Handle trivia answer submission
   const handleTriviaAnswer = useCallback(
@@ -349,7 +351,6 @@ export const PlaneGame: React.FC<PlaneGameProps> = ({
             camera={{ position: [0, 200, 30], fov: 75 }}
             gl={{ antialias: true }}
             className="w-full h-full"
-            style={{ background: "linear-gradient(to bottom, #87CEEB 0%, #98D8E8 50%, #B0E0E6 100%)" }}
           >
             <GameScene
               weather={currentWeather}
@@ -362,7 +363,9 @@ export const PlaneGame: React.FC<PlaneGameProps> = ({
               isStreamLoading={isStreamLoading}
               isStreamLive={isStreamLive}
               onHealthIncrease={handleHealthIncrease}
-              currentHealth={gameMode === "free" ? freeFlightHealth : challengeHealth}
+              currentHealth={
+                gameMode === "free" ? freeFlightHealth : challengeHealth
+              }
             />
           </Canvas>
 

@@ -84,35 +84,19 @@ export const GameLoader: React.FC<GameLoaderProps> = ({
       try {
         // Try Daydream API first
         if (DaydreamIntegration.isAvailable()) {
-          console.log("GameLoader: Creating Daydream stream...");
-
           try {
             const streamData = await DaydreamIntegration.createStream();
-            console.log("GameLoader: Daydream stream created:", streamData);
 
             const playbackId = streamData.output_playback_id;
             const whipUrl = streamData.whip_url;
             const streamId = streamData.id;
             const livepeerTvUrl = DaydreamIntegration.getLivepeerTvUrl() || "";
 
-            console.log("GameLoader: Extracted playbackId:", playbackId);
-            console.log("GameLoader: Extracted whipUrl:", whipUrl);
-            console.log("GameLoader: Extracted streamId:", streamId);
-            console.log("GameLoader: Extracted livepeerTvUrl:", livepeerTvUrl);
-
             if (playbackId && whipUrl && streamId) {
               setStreamData({ playbackId, whipUrl, streamId });
               onStreamReady?.(playbackId, whipUrl);
               setStreamInitialized(true);
               setProgress(100); // Complete the progress bar
-              console.log("GameLoader: Stream data set successfully");
-              console.log(
-                "GameLoader: streamInitialized set to true, progress set to 100"
-              );
-
-              // Stream is ready for weather overlay
-              console.log("🎬 Stream ready for weather overlay");
-              console.log("🎬 Livepeer TV URL:", livepeerTvUrl);
               return;
             }
           } catch (error) {
@@ -148,14 +132,7 @@ export const GameLoader: React.FC<GameLoaderProps> = ({
   }, [streamInitialized, onStreamReady]);
 
   useEffect(() => {
-    console.log(
-      "🎬 GameLoader: progress:",
-      progress,
-      "streamInitialized:",
-      streamInitialized
-    );
     if (progress >= 100 && streamInitialized) {
-      console.log("🎬 GameLoader: Setting readyToStart to true");
       setReadyToStart(true);
     }
   }, [progress, streamInitialized]);
@@ -168,8 +145,6 @@ export const GameLoader: React.FC<GameLoaderProps> = ({
     if ((window as any).stopLoaderMusic) {
       (window as any).stopLoaderMusic();
     }
-
-    console.log("🎬 Starting game with weather overlay");
 
     onLoadingComplete();
   };

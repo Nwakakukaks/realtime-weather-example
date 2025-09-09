@@ -323,7 +323,7 @@ export function GameOverlays({
               <span>Roll (bank left/right)</span>
             </div>
             <div className="flex items-center gap-2">
-              <span>&lt; &gt;</span>
+              <span>N M</span>
               <span>Turn (yaw left/right)</span>
             </div>
             <div className="flex items-center gap-2">

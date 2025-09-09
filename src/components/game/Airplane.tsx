@@ -85,12 +85,12 @@ export function updatePlaneAxis(
     currentPitchVelocity -= 0.0025; // SWAPPED: down arrow now pitches up
   }
 
-  // New turning controls with < and > keys (pure yaw, no banking)
-  if (getControls()[","] || getControls()["<"]) { // < key
+  // New turning controls with N and M keys (pure yaw, no banking)
+  if (getControls()["n"]) { // N key
     currentJawVelocity += 0.002; // Pure yaw left
   }
 
-  if (getControls()["."] || getControls()[">"]) { // > key  
+  if (getControls()["m"]) { // M key  
     currentJawVelocity -= 0.002; // Pure yaw right
   }
 
@@ -114,7 +114,13 @@ export function updatePlaneAxis(
   y.applyAxisAngle(x, currentPitchVelocity);
   z.applyAxisAngle(x, currentPitchVelocity);
 
-  // Apply yaw (turning left/right) - now happens automatically when banking
+  // Apply pure yaw (turning left/right) - independent of banking
+  if (Math.abs(currentJawVelocity) > 0.001) {
+    x.applyAxisAngle(y, currentJawVelocity);
+    z.applyAxisAngle(y, currentJawVelocity);
+  }
+
+  // Apply banking-induced yaw (turning left/right) - happens when banking
   // When you roll left, the plane naturally turns left due to lift
   if (Math.abs(currentRollVelocity) > 0.001) {
     const turnRate = currentRollVelocity * 0.5; // Banking creates turning
