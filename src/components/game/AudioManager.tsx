@@ -38,6 +38,14 @@ export const AudioManager: React.FC<AudioManagerProps> = ({
   const [musicVolume, setMusicVolume] = useState(0.6);
   const [sfxVolume, setSfxVolume] = useState(0.8);
   const [isMuted, setIsMuted] = useState(false);
+  const [audioInitialized, setAudioInitialized] = useState(false);
+
+  // User gesture handler for audio initialization
+  const handleUserInteraction = useCallback(() => {
+    if (!audioInitialized) {
+      setAudioInitialized(true);
+    }
+  }, [audioInitialized]);
 
   // Helper function to safely set volume with bounds checking
   const setSafeVolume = (audio: HTMLAudioElement, volume: number) => {
@@ -93,8 +101,10 @@ export const AudioManager: React.FC<AudioManagerProps> = ({
   const windRef = useRef<HTMLAudioElement | null>(null);
   const soundEffectsRef = useRef<Map<string, SoundEffect>>(new Map());
 
-  // Initialize audio context
+  // Initialize audio context only after user interaction
   useEffect(() => {
+    if (!audioInitialized) return;
+
     const initAudio = async () => {
       try {
         // Check if we already have an audio context
@@ -107,9 +117,14 @@ export const AudioManager: React.FC<AudioManagerProps> = ({
         // Create new audio context only if needed
         const context = new (window.AudioContext || (window as any).webkitAudioContext)();
         
-        // Resume audio context if suspended
+        // Resume audio context if suspended (requires user gesture)
         if (context.state === 'suspended') {
-          await context.resume();
+          try {
+            await context.resume();
+          } catch (error) {
+            console.warn('AudioContext resume failed (user gesture required):', error);
+            // Don't fail completely, just warn and continue
+          }
         }
         
         setAudioContext(context);
@@ -143,7 +158,22 @@ export const AudioManager: React.FC<AudioManagerProps> = ({
         console.warn('AudioContext cleanup error (this is usually harmless):', error);
       }
     };
-  }, [onAudioReady]); // Removed audioContext from dependencies to prevent infinite loop
+  }, [audioInitialized, onAudioReady]); // Added audioInitialized dependency
+
+  // Add user interaction listeners
+  useEffect(() => {
+    const events = ['click', 'touchstart', 'keydown'];
+    
+    events.forEach(event => {
+      document.addEventListener(event, handleUserInteraction, { once: true });
+    });
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, handleUserInteraction);
+      });
+    };
+  }, [handleUserInteraction]);
 
       // Initialize audio elements
   useEffect(() => {

@@ -15,8 +15,6 @@ export const EXTERNAL_ASSET_URLS = {
 export const LOCAL_ASSET_URLS = {
   models: {
     airplane: "/assets/models/airplane.glb",
-    scene: "/assets/models/scene.glb",
-    matera: "/assets/models/Matera.glb",
   },
   textures: {
     envmapHdr: "/assets/textures/envmap.hdr",
@@ -32,11 +30,9 @@ export const getModelUrl = (modelName: string): string => {
   
   // Local models
   if (modelName === 'airplane') return LOCAL_ASSET_URLS.models.airplane;
-  if (modelName === 'scene') return LOCAL_ASSET_URLS.models.scene;
-  if (modelName === 'matera') return LOCAL_ASSET_URLS.models.matera;
   
-  // Default fallback
-  return "/assets/models/NewYork.glb";
+  // Default fallback to New York external model
+  return EXTERNAL_ASSET_URLS.models.newYork;
 };
 
 // Helper function to get texture URL

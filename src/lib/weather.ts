@@ -47,6 +47,12 @@ export class WeatherAPI {
   private static cache = new Map<string, { data: WeatherData; timestamp: number }>();
   private static CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache
 
+  private static validateApiKey(): boolean {
+    return this.API_KEY && 
+           this.API_KEY !== 'your_openweather_api_key_here' && 
+           this.API_KEY.length > 10;
+  }
+
   static async getWeather(city: City): Promise<WeatherData> {
     // Check cache first
     const cacheKey = `${city.name}-${city.country}`;
@@ -55,8 +61,9 @@ export class WeatherAPI {
       return cached.data;
     }
 
-    if (!this.API_KEY) {
-      // Fallback to mock data if no API key
+    if (!this.validateApiKey()) {
+      // Fallback to mock data if no valid API key
+      console.warn('OpenWeather API key not configured, using mock data');
       const mockData = this.getMockWeather(city);
       this.cache.set(cacheKey, { data: mockData, timestamp: Date.now() });
       return mockData;
