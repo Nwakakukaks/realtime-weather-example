@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   Sky,
   Environment,
@@ -42,14 +42,11 @@ export function GameScene({
   weather,
   setFlightData,
   setGameState,
-  gameState,
   isPaused,
   gameMode,
   currentCity,
   isStreamLoading = false,
   isStreamLive = false,
-  onHealthIncrease,
-  currentHealth,
 }: GameSceneProps) {
   // Environment texture always uses local file
   const envTextureUrl = getTextureUrl("envmapHdr");
@@ -71,7 +68,7 @@ export function GameScene({
         color="#ffffff"
       />
       <hemisphereLight
-        skyColor="#87CEEB"
+        color="#87CEEB"
         groundColor="#8B4513"
         intensity={0.3}
       />
@@ -87,9 +84,6 @@ export function GameScene({
       <Environment 
         background={false} 
         files={envTextureUrl}
-        onError={(error) => {
-          console.error("Environment loading error:", error);
-        }}
       />
 
       {/* Landscape */}

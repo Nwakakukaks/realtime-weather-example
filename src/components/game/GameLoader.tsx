@@ -25,7 +25,7 @@ export const GameLoader: React.FC<GameLoaderProps> = ({
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [audioEnabled, setAudioEnabled] = useState(false);
-  const [streamData, setStreamData] = useState<{
+  const [, setStreamData] = useState<{
     playbackId: string;
     whipUrl: string;
     streamId: string;

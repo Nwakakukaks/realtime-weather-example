@@ -158,11 +158,10 @@ const AirplaneComponent = ({
   setGameState,
   isPaused,
   gameMode,
-}: AirplaneProps): JSX.Element => {
+}: AirplaneProps) => {
   const { nodes, materials } = useGLTF("/assets/models/airplane.glb") as any;
   const groupRef = useRef<THREE.Group>(null);
   const helixMeshRef = useRef<THREE.Mesh>(null);
-  const lastUpdateTime = useRef<number>(0);
   const frameCount = useRef<number>(0);
 
   // Check if model is loaded
@@ -177,7 +176,7 @@ const AirplaneComponent = ({
   const y = useMemo(() => new THREE.Vector3(0, 1, 0), []);
   const z = useMemo(() => new THREE.Vector3(0, 0, 1), []);
 
-  useFrame((state, delta) => {
+  useFrame(() => {
     if (!groupRef.current || !helixMeshRef.current) return;
 
     updatePlaneAxis(x, y, z, weather, isPaused);
@@ -204,7 +203,6 @@ const AirplaneComponent = ({
 
     // Throttle flight data updates to prevent infinite re-renders
     frameCount.current += 1;
-    const now = state.clock.elapsedTime;
     
     // Only update flight data every 6 frames (10fps) to prevent excessive re-renders
     if (frameCount.current % 6 === 0 && !isPaused) {

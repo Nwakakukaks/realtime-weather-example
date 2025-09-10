@@ -201,7 +201,7 @@ const WeatherVideoOverlayComponent = ({
                 onStreamStateChange?.(false, true);
               }, 12000); // 12 second delay for Livepeer TV to load
             }}
-            onError={(e) => {
+            onError={(_e: any) => {
               setError(
                 "Failed to load Daydream stream - stream may be starting up"
               );

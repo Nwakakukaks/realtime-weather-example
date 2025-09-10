@@ -41,7 +41,7 @@ export function GameOverlays({
   freeFlightHealth,
 }: GameOverlaysProps) {
   const [isOverlayVisible, setIsOverlayVisible] = useState(true);
-  const [showHealthIncrease, setShowHealthIncrease] = useState(false);
+  const [, setShowHealthIncrease] = useState(false);
 
   const toggleOverlay = () => {
     setIsOverlayVisible(!isOverlayVisible);
